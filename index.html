@@ -3,11 +3,48 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
     <title>Unity Web Player | Savanna Run</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      #minipay-status {
+        position: fixed;
+        z-index: 10000;
+        left: 50%;
+        bottom: max(12px, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        max-width: calc(100vw - 32px);
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 999px;
+        background: rgba(22, 14, 8, 0.92);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.38);
+        color: #f3d6a0;
+        font: 700 11px/1.2 Arial, sans-serif;
+        letter-spacing: 0.05em;
+        text-align: center;
+        pointer-events: none;
+      }
+
+      #minipay-status[data-kind="ready"] {
+        border-color: rgba(86, 214, 134, 0.7);
+        color: #9cf0b8;
+      }
+
+      #minipay-status[data-kind="warning"] {
+        border-color: rgba(244, 181, 68, 0.75);
+        color: #ffd47c;
+      }
+
+      #minipay-status[data-kind="error"] {
+        border-color: rgba(235, 89, 83, 0.75);
+        color: #ffaaa6;
+      }
+    </style>
   </head>
   <body>
+    <div id="minipay-status" role="status" aria-live="polite" hidden></div>
     <div id="unity-container" class="unity-desktop">
       <canvas id="unity-canvas" width=540 height=960 tabindex="-1"></canvas>
       <div id="unity-loading-bar">
@@ -23,6 +60,7 @@
         <div id="unity-build-title">Savanna Run</div>
       </div>
     </div>
+    <script src="minipay-connection.js"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
 
@@ -90,10 +128,6 @@
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
 
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
 
