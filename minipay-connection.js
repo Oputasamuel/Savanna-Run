@@ -140,6 +140,22 @@
     return value.padStart(64, "0");
   }
 
+  function formatTokenAmount(amountAtomic, decimals) {
+    var amount = BigInt(String(amountAtomic));
+    var places = Number(decimals);
+    if (!Number.isInteger(places) || places < 0 || places > 36) {
+      throw new Error("The payment token decimals are invalid.");
+    }
+
+    var divisor = 10n ** BigInt(places);
+    var whole = amount / divisor;
+    var fraction = (amount % divisor).toString().padStart(places, "0");
+    fraction = fraction.replace(/0+$/, "");
+    return fraction
+      ? whole.toString() + "." + fraction
+      : whole.toString();
+  }
+
   function encodeTransfer(recipient, amountAtomic) {
     var normalizedRecipient = String(recipient || "")
       .toLowerCase()
@@ -175,7 +191,7 @@
     if (lower.indexOf("insufficient") >= 0 ||
         lower.indexOf("balance") >= 0 ||
         lower.indexOf("fund") >= 0) {
-      return "TEST USDC OR USDM BALANCE IS TOO LOW";
+      return "USDC OR USDM BALANCE IS TOO LOW";
     }
 
     if (lower.indexOf("profile") >= 0) {
@@ -255,8 +271,14 @@
         throw new Error("The secure player session is missing.");
       }
 
+      var displayAmount = formatTokenAmount(
+        intent.amount_atomic,
+        intent.token_decimals
+      );
       setStatus(
-        "CONFIRM 0.01 TEST USDC IN MINIPAY \u2022 NETWORK FEE IN USDM",
+        "CONFIRM " + displayAmount + " " +
+          intent.token_symbol +
+          " IN MINIPAY \u2022 NETWORK FEE IN USDM",
         "pending"
       );
 
@@ -286,7 +308,13 @@
         txHash
       );
 
-      setStatus("TEST PAYMENT COMPLETE \u2022 +1 MAGNET", "ready");
+      var rewardMessage = intent.sku_id === "orb_1"
+        ? "+1 ORB"
+        : "+1 MAGNET";
+      setStatus(
+        "PAYMENT COMPLETE \u2022 " + rewardMessage,
+        "ready"
+      );
       if (window.SavannaUnityInstance) {
         window.SavannaUnityInstance.SendMessage(
           "Savanna Supabase Client",
@@ -299,6 +327,47 @@
     } finally {
       purchaseInProgress = false;
       updatePurchaseButton();
+    }
+  }
+
+  function requestSkuPurchase(skuId) {
+    var normalizedSku = String(skuId || "").trim();
+    if (normalizedSku !== "orb_1") {
+      setStatus("THIS MINIPAY ITEM IS UNAVAILABLE", "error");
+      return false;
+    }
+
+    if (!state.isMiniPay || !state.connected) {
+      setStatus("OPEN SAVANNA RUN INSIDE MINIPAY", "warning");
+      return false;
+    }
+    if (state.chainId !== CELO_SEPOLIA_CHAIN_ID) {
+      setStatus(
+        "ENABLE USE TESTNET IN MINIPAY FOR THIS TEST",
+        "warning"
+      );
+      return false;
+    }
+    if (!window.SavannaUnityInstance || purchaseInProgress) {
+      setStatus("MINIPAY PURCHASE IS NOT READY YET", "warning");
+      return false;
+    }
+
+    purchaseInProgress = true;
+    updatePurchaseButton();
+    setStatus("PREPARING SECURE ORB PURCHASE\u2026", "pending");
+    try {
+      window.SavannaUnityInstance.SendMessage(
+        "Savanna Supabase Client",
+        "BeginMiniPaySkuPurchaseFromWeb",
+        normalizedSku + "|" + state.address
+      );
+      return true;
+    } catch (error) {
+      purchaseInProgress = false;
+      updatePurchaseButton();
+      setStatus("UNITY IS NOT READY YET", "warning");
+      return false;
     }
   }
 
@@ -391,6 +460,7 @@
     ready: connect(),
     setPurchaseMessage: setPurchaseMessage,
     startPurchase: startPurchase,
+    requestSkuPurchase: requestSkuPurchase,
     onUnityReady: updatePurchaseButton,
     encodeTransfer: encodeTransfer
   };
