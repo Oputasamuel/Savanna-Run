@@ -227,6 +227,53 @@
       : message.toUpperCase();
   }
 
+  async function recoverPurchaseIntent(accessToken, intent) {
+    var originalAmountIsValid = false;
+    try {
+      originalAmountIsValid =
+        parseAtomicAmount(intent.amount_atomic) > 0n;
+    } catch (error) {
+      originalAmountIsValid = false;
+    }
+
+    if (originalAmountIsValid) {
+      return intent;
+    }
+
+    var response = await fetch(
+      SUPABASE_URL + "/rest/v1/rpc/create_purchase_intent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": "Bearer " + accessToken
+        },
+        body: JSON.stringify({
+          p_sku_id: String(intent.sku_id || ""),
+          p_wallet_address: String(state.address || "")
+        })
+      }
+    );
+
+    var rows = [];
+    try {
+      rows = await response.json();
+    } catch (parseError) {
+      rows = [];
+    }
+
+    var recovered = Array.isArray(rows) ? rows[0] : null;
+    if (!response.ok ||
+        !recovered ||
+        recovered.sku_id !== intent.sku_id ||
+        parseAtomicAmount(recovered.amount_atomic) <= 0n) {
+      throw new Error("The server payment amount is invalid.");
+    }
+
+    return recovered;
+  }
+
   async function verifyPurchase(accessToken, intentId, txHash) {
     for (var attempt = 0; attempt < 25; attempt += 1) {
       var response = await fetch(VERIFIER_URL, {
@@ -298,6 +345,7 @@
         throw new Error("The secure player session is missing.");
       }
 
+      intent = await recoverPurchaseIntent(accessToken, intent);
       var displayAmount = formatTokenAmount(
         intent.amount_atomic,
         intent.token_decimals
