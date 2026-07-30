@@ -263,8 +263,11 @@
       if (!provider || provider.isMiniPay !== true) {
         throw new Error("Open Savanna Run inside MiniPay.");
       }
-      if (state.chainId !== CELO_SEPOLIA_CHAIN_ID ||
-          Number(intent.chain_id) !== CELO_SEPOLIA_CHAIN_ID) {
+      // The active MiniPay provider is the authoritative client-side
+      // network signal. The verifier independently loads the intent from
+      // Supabase and enforces its stored chain before awarding inventory.
+      // Do not reject on Unity's serialized bigint copy of chain_id.
+      if (state.chainId !== CELO_SEPOLIA_CHAIN_ID) {
         throw new Error("Enable Use Testnet in MiniPay first.");
       }
       if (!accessToken) {
