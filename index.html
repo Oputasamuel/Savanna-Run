@@ -3,10 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
     <title>Unity Web Player | Savanna Run</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+  
+    <!-- savanna-minipay-shell -->
     <style>
       #minipay-status {
         position: fixed;
@@ -26,25 +27,47 @@
         text-align: center;
         pointer-events: none;
       }
-
       #minipay-status[data-kind="ready"] {
         border-color: rgba(86, 214, 134, 0.7);
         color: #9cf0b8;
       }
-
       #minipay-status[data-kind="warning"] {
         border-color: rgba(244, 181, 68, 0.75);
         color: #ffd47c;
       }
-
       #minipay-status[data-kind="error"] {
         border-color: rgba(235, 89, 83, 0.75);
         color: #ffaaa6;
       }
+      #minipay-test-purchase {
+        position: fixed;
+        z-index: 10001;
+        left: 50%;
+        bottom: max(54px, calc(env(safe-area-inset-bottom) + 42px));
+        transform: translateX(-50%);
+        min-width: 230px;
+        padding: 11px 16px;
+        border: 1px solid rgba(255, 207, 103, 0.8);
+        border-radius: 999px;
+        background: linear-gradient(#7a2c12, #43150a);
+        box-shadow: 0 5px 18px rgba(0, 0, 0, 0.45);
+        color: #ffe0a2;
+        font: 800 12px/1.1 Arial, sans-serif;
+        letter-spacing: 0.04em;
+      }
+      #minipay-test-purchase:disabled {
+        cursor: wait;
+        filter: grayscale(0.6);
+        opacity: 0.7;
+      }
     </style>
   </head>
   <body>
+    <button id="minipay-test-purchase" type="button" hidden disabled>
+      TEST: BUY 1 MAGNET &middot; 0.01 USDC
+    </button>
     <div id="minipay-status" role="status" aria-live="polite" hidden></div>
+
     <div id="unity-container" class="unity-desktop">
       <canvas id="unity-canvas" width=540 height=960 tabindex="-1"></canvas>
       <div id="unity-loading-bar">
@@ -128,6 +151,10 @@
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
 
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
 
@@ -150,6 +177,8 @@
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
               }).then((unityInstance) => {
+                window.SavannaUnityInstance = unityInstance;
+                if (window.SavannaMiniPay) window.SavannaMiniPay.onUnityReady();
                 document.querySelector("#unity-loading-bar").style.display = "none";
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
