@@ -283,8 +283,17 @@
     }
 
     if (!response.ok) {
+      var serverDetail = rows && (
+        rows.message ||
+        rows.error_description ||
+        rows.hint ||
+        rows.code
+      );
+      serverDetail = String(serverDetail || "UNKNOWN DATABASE ERROR")
+        .replace(/\s+/g, " ")
+        .slice(0, 90);
       throw new Error(
-        "Server intent request failed (HTTP " + response.status + ")."
+        "Server intent HTTP " + response.status + ": " + serverDetail
       );
     }
 
