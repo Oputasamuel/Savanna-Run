@@ -21,6 +21,7 @@
     "minipay-test-purchase"
   );
   var purchaseInProgress = false;
+  var pendingSkuId = null;
 
   var state = {
     isMiniPay: false,
@@ -246,7 +247,7 @@
       : message.toUpperCase();
   }
 
-  async function recoverPurchaseIntent(accessToken, intent) {
+  async function recoverPurchaseIntent(accessToken, intent, skuIdHint) {
     var originalAmountIsValid = false;
     try {
       originalAmountIsValid =
@@ -259,6 +260,11 @@
       return intent;
     }
 
+    var requestedSku = String(skuIdHint || intent.sku_id || "").trim();
+    if (requestedSku !== "test_magnet" && requestedSku !== "orb_1") {
+      throw new Error("The selected store item is invalid.");
+    }
+
     var response = await fetch(
       SUPABASE_URL + "/rest/v1/rpc/create_purchase_intent",
       {
@@ -269,7 +275,7 @@
           "Authorization": "Bearer " + accessToken
         },
         body: JSON.stringify({
-          p_sku_id: String(intent.sku_id || ""),
+          p_sku_id: requestedSku,
           p_wallet_address: String(state.address || "")
         })
       }
@@ -303,7 +309,7 @@
     if (!recovered) {
       throw new Error("Server intent returned no payment row.");
     }
-    if (recovered.sku_id !== intent.sku_id) {
+    if (recovered.sku_id !== requestedSku) {
       throw new Error("Server intent SKU did not match.");
     }
 
@@ -394,7 +400,11 @@
         throw new Error("The secure player session is missing.");
       }
 
-      intent = await recoverPurchaseIntent(accessToken, intent);
+      intent = await recoverPurchaseIntent(
+        accessToken,
+        intent,
+        pendingSkuId
+      );
       var displayAmount = formatTokenAmount(
         intent.amount_atomic,
         intent.token_decimals
@@ -449,6 +459,7 @@
     } catch (error) {
       setStatus(friendlyError(error), "error");
     } finally {
+      pendingSkuId = null;
       purchaseInProgress = false;
       updatePurchaseButton();
     }
@@ -478,6 +489,7 @@
     }
 
     purchaseInProgress = true;
+    pendingSkuId = normalizedSku;
     updatePurchaseButton();
     setStatus("PREPARING SECURE ORB PURCHASE\u2026", "pending");
     try {
@@ -563,6 +575,7 @@
       if (!canPurchase()) return;
 
       purchaseInProgress = true;
+      pendingSkuId = "test_magnet";
       updatePurchaseButton();
       setStatus("PREPARING SECURE TEST PURCHASE\u2026", "pending");
       try {
