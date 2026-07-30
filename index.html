@@ -5,10 +5,78 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity Web Player | Savanna Run</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css?v=savanna-loader-1">
+    <link rel="stylesheet" href="TemplateData/style.css?v=webgl-20260730">
   
     <!-- savanna-minipay-shell -->
     <style>
+      html,
+      body {
+        background: #120904;
+        overflow: hidden;
+      }
+      #unity-loading-bar {
+        position: fixed;
+        z-index: 9999;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        transform: none;
+        background:
+          linear-gradient(
+            to bottom,
+            rgba(18, 8, 2, 0.05) 48%,
+            rgba(18, 8, 2, 0.74) 100%
+          ),
+          url('TemplateData/savanna-loading.jpg')
+            center center / cover no-repeat;
+      }
+      #unity-logo {
+        display: none;
+      }
+      #unity-progress-bar-empty {
+        position: absolute;
+        z-index: 1;
+        left: 50%;
+        bottom: max(8%, calc(env(safe-area-inset-bottom) + 28px));
+        width: min(72vw, 360px);
+        height: 16px;
+        margin: 0;
+        transform: translateX(-50%);
+        overflow: hidden;
+        border: 2px solid rgba(255, 210, 112, 0.9);
+        border-radius: 999px;
+        background: rgba(30, 12, 5, 0.82);
+        box-shadow:
+          0 0 0 3px rgba(45, 15, 6, 0.55),
+          0 4px 18px rgba(0, 0, 0, 0.6);
+      }
+      #unity-progress-bar-full {
+        width: 0%;
+        height: 100%;
+        margin: 0;
+        border-radius: inherit;
+        background:
+          linear-gradient(90deg, #9d220f, #e6531c 52%, #f8bd48);
+        box-shadow: 0 0 12px rgba(248, 189, 72, 0.72);
+        transition: width 0.12s linear;
+      }
+      #unity-loading-bar::after {
+        content: "LOADING SAVANNA RUN";
+        position: absolute;
+        z-index: 1;
+        left: 50%;
+        bottom: max(
+          calc(8% + 30px),
+          calc(env(safe-area-inset-bottom) + 58px)
+        );
+        transform: translateX(-50%);
+        width: min(84vw, 420px);
+        color: #ffe0a0;
+        font: 800 12px/1.2 Arial, sans-serif;
+        letter-spacing: 0.16em;
+        text-align: center;
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.92);
+      }
       #minipay-status {
         position: fixed;
         z-index: 10000;
@@ -83,7 +151,7 @@
         <div id="unity-build-title">Savanna Run</div>
       </div>
     </div>
-    <script src="minipay-connection.js?v=sku-hint-fix-1"></script>
+    <script src="minipay-connection.js?v=webgl-20260730"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
 
@@ -120,7 +188,7 @@
         frameworkUrl: buildUrl + "/Build.framework.js.unityweb",
         codeUrl: buildUrl + "/Build.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
+        companyName: "WovenPath Studios",
         productName: "Savanna Run",
         productVersion: "0.1.0",
         showBanner: unityShowBanner,
