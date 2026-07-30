@@ -3,8 +3,6 @@
 
   var CELO_MAINNET_CHAIN_ID = 42220;
   var CELO_SEPOLIA_CHAIN_ID = 11142220;
-  var CELO_SEPOLIA_USDM =
-    "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b";
   var SUPABASE_URL =
     "https://zchyyafleejtwcjhezqu.supabase.co";
   var SUPABASE_PUBLISHABLE_KEY =
@@ -412,7 +410,7 @@
       setStatus(
         "CONFIRM " + displayAmount + " " +
           intent.token_symbol +
-          " IN MINIPAY \u2022 NETWORK FEE IN USDM",
+          " IN MINIPAY \u2022 TESTNET NETWORK FEE APPLIES",
         "pending"
       );
 
@@ -425,8 +423,7 @@
           data: encodeTransfer(
             intent.treasury_address,
             intent.amount_atomic
-          ),
-          feeCurrency: CELO_SEPOLIA_USDM
+          )
         }]
       });
 
