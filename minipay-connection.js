@@ -157,11 +157,30 @@
 
     var normalized = String(value == null ? "" : value).trim();
     var wholeAtomicMatch = normalized.match(/^(\d+)(?:\.0+)?$/);
-    if (!wholeAtomicMatch) {
-      throw new Error("The payment amount is invalid.");
+    if (wholeAtomicMatch) {
+      return BigInt(wholeAtomicMatch[1]);
     }
 
-    return BigInt(wholeAtomicMatch[1]);
+    var scientificMatch = normalized.match(
+      /^(\d+)(?:\.(\d*))?[eE]([+-]?\d+)$/
+    );
+    if (scientificMatch) {
+      var fraction = scientificMatch[2] || "";
+      var digits = scientificMatch[1] + fraction;
+      var scale = Number(scientificMatch[3]) - fraction.length;
+      if (Number.isSafeInteger(scale)) {
+        if (scale >= 0) {
+          return BigInt(digits + "0".repeat(scale));
+        }
+
+        var fractionalAtomicDigits = digits.slice(scale);
+        if (/^0+$/.test(fractionalAtomicDigits)) {
+          return BigInt(digits.slice(0, scale) || "0");
+        }
+      }
+    }
+
+    throw new Error("The payment amount is invalid.");
   }
 
   function formatTokenAmount(amountAtomic, decimals) {
@@ -263,12 +282,33 @@
       rows = [];
     }
 
-    var recovered = Array.isArray(rows) ? rows[0] : null;
-    if (!response.ok ||
-        !recovered ||
-        recovered.sku_id !== intent.sku_id ||
-        parseAtomicAmount(recovered.amount_atomic) <= 0n) {
-      throw new Error("The server payment amount is invalid.");
+    if (!response.ok) {
+      throw new Error(
+        "Server intent request failed (HTTP " + response.status + ")."
+      );
+    }
+
+    var recovered = Array.isArray(rows)
+      ? rows[0]
+      : (rows && rows.amount_atomic != null ? rows : null);
+    if (!recovered) {
+      throw new Error("Server intent returned no payment row.");
+    }
+    if (recovered.sku_id !== intent.sku_id) {
+      throw new Error("Server intent SKU did not match.");
+    }
+
+    var recoveredAmount;
+    try {
+      recoveredAmount = parseAtomicAmount(recovered.amount_atomic);
+    } catch (amountError) {
+      throw new Error(
+        "Server intent amount format was " +
+        typeof recovered.amount_atomic + "."
+      );
+    }
+    if (recoveredAmount <= 0n) {
+      throw new Error("Server intent amount was zero.");
     }
 
     return recovered;
