@@ -140,8 +140,32 @@
     return value.padStart(64, "0");
   }
 
+  function parseAtomicAmount(value) {
+    if (typeof value === "bigint") {
+      if (value < 0n) {
+        throw new Error("The payment amount is invalid.");
+      }
+      return value;
+    }
+
+    if (typeof value === "number") {
+      if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error("The payment amount is invalid.");
+      }
+      return BigInt(value);
+    }
+
+    var normalized = String(value == null ? "" : value).trim();
+    var wholeAtomicMatch = normalized.match(/^(\d+)(?:\.0+)?$/);
+    if (!wholeAtomicMatch) {
+      throw new Error("The payment amount is invalid.");
+    }
+
+    return BigInt(wholeAtomicMatch[1]);
+  }
+
   function formatTokenAmount(amountAtomic, decimals) {
-    var amount = BigInt(String(amountAtomic));
+    var amount = parseAtomicAmount(amountAtomic);
     var places = Number(decimals);
     if (!Number.isInteger(places) || places < 0 || places > 36) {
       throw new Error("The payment token decimals are invalid.");
@@ -164,7 +188,7 @@
       throw new Error("The payment recipient is invalid.");
     }
 
-    var amount = BigInt(String(amountAtomic));
+    var amount = parseAtomicAmount(amountAtomic);
     if (amount <= 0n) {
       throw new Error("The payment amount is invalid.");
     }
