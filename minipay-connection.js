@@ -3,6 +3,8 @@
 
   var CELO_MAINNET_CHAIN_ID = 42220;
   var CELO_SEPOLIA_CHAIN_ID = 11142220;
+  var USDC_MAINNET_FEE_CURRENCY =
+    "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B";
   var SUPABASE_URL =
     "https://zchyyafleejtwcjhezqu.supabase.co";
   var SUPABASE_PUBLISHABLE_KEY =
@@ -75,7 +77,7 @@
   function canPurchase() {
     return state.isMiniPay &&
       state.connected &&
-      state.chainId === CELO_SEPOLIA_CHAIN_ID &&
+      state.chainId === CELO_MAINNET_CHAIN_ID &&
       Boolean(window.SavannaUnityInstance) &&
       !purchaseInProgress;
   }
@@ -85,7 +87,7 @@
 
     var visible = state.isMiniPay &&
       state.connected &&
-      state.chainId === CELO_SEPOLIA_CHAIN_ID;
+      state.chainId === CELO_MAINNET_CHAIN_ID;
     purchaseButton.hidden = !visible;
     purchaseButton.disabled = !canPurchase();
   }
@@ -93,20 +95,20 @@
   function updateNetwork(chainId) {
     state.chainId = chainId;
 
-    if (chainId === CELO_SEPOLIA_CHAIN_ID) {
-      state.network = "celo-sepolia";
+    if (chainId === CELO_MAINNET_CHAIN_ID) {
+      state.network = "celo-mainnet";
       setStatus(
-        "MINIPAY TEST READY \u2022 " + shortAddress(state.address),
+        "MINIPAY READY \u2022 " + shortAddress(state.address),
         "ready"
       );
       updatePurchaseButton();
       return;
     }
 
-    if (chainId === CELO_MAINNET_CHAIN_ID) {
-      state.network = "celo-mainnet";
+    if (chainId === CELO_SEPOLIA_CHAIN_ID) {
+      state.network = "celo-sepolia";
       setStatus(
-        "MINIPAY MAINNET \u2022 ENABLE USE TESTNET FOR THIS TEST",
+        "MINIPAY TESTNET \u2022 DISABLE USE TESTNET TO BUY",
         "warning"
       );
       updatePurchaseButton();
@@ -115,7 +117,7 @@
 
     state.network = "unsupported";
     setStatus(
-      "OPEN DEVELOPER SETTINGS AND ENABLE USE TESTNET",
+      "SWITCH MINIPAY TO CELO MAINNET",
       "warning"
     );
     updatePurchaseButton();
@@ -241,7 +243,7 @@
     }
 
     return message.length > 100
-      ? "THE TEST PAYMENT COULD NOT BE COMPLETED"
+      ? "THE PAYMENT COULD NOT BE COMPLETED"
       : message.toUpperCase();
   }
 
@@ -259,7 +261,7 @@
     }
 
     var requestedSku = String(skuIdHint || intent.sku_id || "").trim();
-    if (requestedSku !== "test_magnet" && requestedSku !== "orb_1") {
+    if (requestedSku !== "orb_1") {
       throw new Error("The selected store item is invalid.");
     }
 
@@ -377,9 +379,9 @@
     try {
       if (!state.isMiniPay ||
           !state.connected ||
-          state.chainId !== CELO_SEPOLIA_CHAIN_ID ||
+          state.chainId !== CELO_MAINNET_CHAIN_ID ||
           !window.SavannaUnityInstance) {
-        throw new Error("MiniPay test mode is not ready.");
+        throw new Error("MiniPay mainnet is not ready.");
       }
 
       var provider = window.ethereum;
@@ -391,8 +393,8 @@
       // network signal. The verifier independently loads the intent from
       // Supabase and enforces its stored chain before awarding inventory.
       // Do not reject on Unity's serialized bigint copy of chain_id.
-      if (state.chainId !== CELO_SEPOLIA_CHAIN_ID) {
-        throw new Error("Enable Use Testnet in MiniPay first.");
+      if (state.chainId !== CELO_MAINNET_CHAIN_ID) {
+        throw new Error("Disable Use Testnet in MiniPay first.");
       }
       if (!accessToken) {
         throw new Error("The secure player session is missing.");
@@ -410,7 +412,7 @@
       setStatus(
         "CONFIRM " + displayAmount + " " +
           intent.token_symbol +
-          " IN MINIPAY \u2022 TESTNET NETWORK FEE APPLIES",
+          " IN MINIPAY \u2022 NETWORK FEE APPLIES",
         "pending"
       );
 
@@ -420,6 +422,7 @@
           from: state.address,
           to: intent.token_address,
           value: "0x0",
+          feeCurrency: USDC_MAINNET_FEE_CURRENCY,
           data: encodeTransfer(
             intent.treasury_address,
             intent.amount_atomic
@@ -473,9 +476,9 @@
       setStatus("OPEN SAVANNA RUN INSIDE MINIPAY", "warning");
       return false;
     }
-    if (state.chainId !== CELO_SEPOLIA_CHAIN_ID) {
+    if (state.chainId !== CELO_MAINNET_CHAIN_ID) {
       setStatus(
-        "ENABLE USE TESTNET IN MINIPAY FOR THIS TEST",
+        "DISABLE USE TESTNET IN MINIPAY TO BUY",
         "warning"
       );
       return false;
@@ -572,20 +575,7 @@
       if (!canPurchase()) return;
 
       purchaseInProgress = true;
-      pendingSkuId = "test_magnet";
-      updatePurchaseButton();
-      setStatus("PREPARING SECURE TEST PURCHASE\u2026", "pending");
-      try {
-        window.SavannaUnityInstance.SendMessage(
-          "Savanna Supabase Client",
-          "BeginMiniPayTestPurchaseFromWeb",
-          state.address
-        );
-      } catch (error) {
-        purchaseInProgress = false;
-        updatePurchaseButton();
-        setStatus("UNITY IS NOT READY YET", "warning");
-      }
+      requestSkuPurchase("orb_1");
     });
   }
 
