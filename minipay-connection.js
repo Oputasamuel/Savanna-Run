@@ -3,8 +3,8 @@
 
   var CELO_MAINNET_CHAIN_ID = 42220;
   var CELO_SEPOLIA_CHAIN_ID = 11142220;
-  var USDC_MAINNET_FEE_CURRENCY =
-    "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B";
+  var USDT_MAINNET_FEE_CURRENCY =
+    "0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72";
   var SUPABASE_URL =
     "https://zchyyafleejtwcjhezqu.supabase.co";
   var SUPABASE_PUBLISHABLE_KEY =
@@ -235,7 +235,7 @@
     if (lower.indexOf("insufficient") >= 0 ||
         lower.indexOf("balance") >= 0 ||
         lower.indexOf("fund") >= 0) {
-      return "USDC OR USDM BALANCE IS TOO LOW";
+      return "USDT BALANCE IS TOO LOW";
     }
 
     if (lower.indexOf("profile") >= 0) {
@@ -422,7 +422,7 @@
           from: state.address,
           to: intent.token_address,
           value: "0x0",
-          feeCurrency: USDC_MAINNET_FEE_CURRENCY,
+          feeCurrency: USDT_MAINNET_FEE_CURRENCY,
           data: encodeTransfer(
             intent.treasury_address,
             intent.amount_atomic
