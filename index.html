@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity Web Player | Savanna Run</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css?v=webgl-20260730">
+    <link rel="stylesheet" href="TemplateData/style.css">
   
     <!-- savanna-minipay-shell -->
     <style>
@@ -95,7 +95,7 @@
         <div id="unity-build-title">Savanna Run</div>
       </div>
     </div>
-  <script src="minipay-connection.js?v=mainnet-usdt-1"></script>
+    <script src="minipay-connection.js?v=mainnet-usdt-1"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
 
@@ -125,12 +125,12 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/Build.loader.js";
+      var loaderUrl = buildUrl + "/BuildOptimized.loader.js";
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/Build.data.unityweb",
-        frameworkUrl: buildUrl + "/Build.framework.js.unityweb",
-        codeUrl: buildUrl + "/Build.wasm.unityweb",
+        dataUrl: buildUrl + "/BuildOptimized.data.unityweb",
+        frameworkUrl: buildUrl + "/BuildOptimized.framework.js.unityweb",
+        codeUrl: buildUrl + "/BuildOptimized.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "WovenPath Studios",
         productName: "Savanna Run",
