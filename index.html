@@ -177,8 +177,10 @@
 
       } else {
         // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "540px";
-        canvas.style.height = "960px";
+        // Desktop presentation uses the equivalent of 75% browser zoom
+        // without changing the user's browser settings.
+        canvas.style.width = "405px";
+        canvas.style.height = "720px";
       }
 
       document.querySelector("#unity-loading-bar").style.display = "block";
