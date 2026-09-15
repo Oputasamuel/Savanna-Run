@@ -11,7 +11,7 @@
 
 Play the production WebGL release at **[savanna-run.xyz](https://savanna-run.xyz/)**.
 
-The core game is playable by anyone in a modern browser. A Nimiq Pay wallet is only required when purchasing items priced in NIM.
+A Nimiq Pay wallet is  required when purchasing items priced in NIM.
 
 > **Mainnet notice:** NIM purchases use real NIM. Always review the recipient and amount in Nimiq Pay before confirming.
 
@@ -90,23 +90,6 @@ supabase/migrations/           Account/profile safety migrations
 .github/workflows/             GitHub Pages deployment workflow
 ```
 
-## Run locally
-
-Serve the repository over HTTP; Unity WebGL should not be opened directly through a `file://` URL.
-
-```bash
-python -m http.server 8080
-```
-
-Then open [http://localhost:8080](http://localhost:8080).
-
-The runner can be tested in a normal browser. Wallet connection and real NIM payment approval require the Nimiq Pay environment.
-
-## Deployment
-
-Every push to `main` triggers the **Deploy Savanna Run WebGL** GitHub Actions workflow. The workflow checks out Git LFS objects, packages the release, and deploys it to GitHub Pages and the `savanna-run.xyz` custom domain.
-
-The current release is approximately **93.37 MiB**, including the compiled game, JavaScript runtime, and template assets.
 
 ## Security
 
