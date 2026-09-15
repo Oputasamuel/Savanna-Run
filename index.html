@@ -7,7 +7,7 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
   
-    <!-- savanna-minipay-shell -->
+    <!-- savanna-nimiq-shell -->
     <style>
       html,
       body {
@@ -60,8 +60,7 @@
         box-shadow: 0 0 12px rgba(248, 189, 72, 0.72);
         transition: width 0.12s linear;
       }
-      #unity-loading-bar::after {
-        content: "LOADING SAVANNA RUN";
+      #unity-loading-message {
         position: absolute;
         z-index: 1;
         left: 50%;
@@ -76,6 +75,7 @@
         letter-spacing: 0.16em;
         text-align: center;
         text-shadow: 0 2px 5px rgba(0, 0, 0, 0.92);
+        transition: opacity 0.18s ease;
       }
     </style>
   </head>
@@ -84,6 +84,7 @@
       <canvas id="unity-canvas" width=540 height=960 tabindex="-1"></canvas>
       <div id="unity-loading-bar">
         <div id="unity-logo"></div>
+        <div id="unity-loading-message" aria-live="polite">LOADING SAVANNA RUN</div>
         <div id="unity-progress-bar-empty">
           <div id="unity-progress-bar-full"></div>
         </div>
@@ -95,9 +96,34 @@
         <div id="unity-build-title">Savanna Run</div>
       </div>
     </div>
-    <script src="minipay-connection.js?v=mainnet-usdt-1"></script>
+    <script src="nimiq-connection.js?v=mainnet-1"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
+
+      var loadingMessage = document.querySelector("#unity-loading-message");
+      var loadingMessages = [
+        "DOWNLOADING ASSETS",
+        "SETTING UP THE SAVANNA",
+        "PREPARING KESI FOR THE RUN",
+        "LOADING THE VILLAGE",
+        "POLISHING THE COWRIES",
+        "TIP: CONNECT YOUR EMAIL TO SECURE YOUR ACCOUNT",
+        "FUTURE LOADS ARE FASTER AFTER THIS FIRST VISIT"
+      ];
+      var previousLoadingMessage = -1;
+      function showRandomLoadingMessage() {
+        var next = Math.floor(Math.random() * loadingMessages.length);
+        if (loadingMessages.length > 1 && next === previousLoadingMessage)
+          next = (next + 1) % loadingMessages.length;
+        previousLoadingMessage = next;
+        loadingMessage.style.opacity = "0";
+        setTimeout(function() {
+          loadingMessage.textContent = loadingMessages[next];
+          loadingMessage.style.opacity = "1";
+        }, 180);
+      }
+      showRandomLoadingMessage();
+      var loadingMessageTimer = setInterval(showRandomLoadingMessage, 2400);
 
       // Shows a temporary message banner/ribbon for a few seconds, or
       // a permanent error message on top of the canvas if type=='error'.
@@ -191,7 +217,8 @@
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
               }).then((unityInstance) => {
                 window.SavannaUnityInstance = unityInstance;
-                if (window.SavannaMiniPay) window.SavannaMiniPay.onUnityReady();
+                if (window.SavannaNimiq) window.SavannaNimiq.onUnityReady();
+                clearInterval(loadingMessageTimer);
                 document.querySelector("#unity-loading-bar").style.display = "none";
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
