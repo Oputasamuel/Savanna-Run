@@ -10,11 +10,14 @@
     SUPABASE_URL + "/functions/v1/verify-nimiq-purchase";
   var PURCHASE_INTENT_URL =
     SUPABASE_URL + "/rest/v1/rpc/create_nimiq_purchase_intent";
+  var DAGBE_PURCHASE_INTENT_URL =
+    SUPABASE_URL + "/functions/v1/create-nimiq-dagbe-intent";
   var SKU_AMOUNTS_LUNA = {
     orb_1: 100000000
   };
   var SKU_TREASURIES = {
-    orb_1: "NQ401G5MREE70CAADTCMU20479T9RJSXB1V4"
+    orb_1: "NQ401G5MREE70CAADTCMU20479T9RJSXB1V4",
+    dagbe_pack: "NQ401G5MREE70CAADTCMU20479T9RJSXB1V4"
   };
   var PENDING_PAYMENT_KEY = "savanna.nimiq.mainnet.pendingPayment";
 
@@ -119,6 +122,12 @@
     if (kind === 3) purchaseInProgress = false;
   }
 
+  function completionMessageForSku(skuId) {
+    return skuId === "dagbe_pack"
+      ? "PAYMENT COMPLETE \u2022 DAGBE PACK UNLOCKED"
+      : "PAYMENT COMPLETE \u2022 +1 ORB";
+  }
+
   async function verifyPurchase(accessToken, intentId, txHash) {
     for (var attempt = 0; attempt < 120; attempt += 1) {
       var response = await fetch(VERIFIER_URL, {
@@ -143,7 +152,10 @@
   }
 
   async function fetchPurchaseIntent(accessToken, skuId, walletAddress) {
-    var response = await fetch(PURCHASE_INTENT_URL, {
+    var intentUrl = skuId === "dagbe_pack"
+      ? DAGBE_PURCHASE_INTENT_URL
+      : PURCHASE_INTENT_URL;
+    var response = await fetch(intentUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -193,7 +205,7 @@
       String(saved.intentId),
       String(saved.txHash)
     );
-    setPurchaseMessage("PAYMENT COMPLETE \u2022 +1 ORB", 1);
+    setPurchaseMessage(completionMessageForSku(saved.skuId), 1);
     try { localStorage.removeItem(PENDING_PAYMENT_KEY); } catch (_) {}
     window.SavannaUnityInstance.SendMessage(
       "Savanna Supabase Client",
@@ -220,6 +232,9 @@
         throw new Error("The purchase intent is missing.");
       }
       var intentId = String(intent.intent_id || "").trim();
+      var purchaseSkuId = String(
+        intent.sku_id || pendingSkuId || "orb_1"
+      ).trim();
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(intentId)) {
         setPurchaseMessage("REFRESHING SECURE PURCHASE INTENT\u2026", 0);
         intent = await fetchPurchaseIntent(
@@ -287,6 +302,7 @@
         localStorage.setItem(PENDING_PAYMENT_KEY, JSON.stringify({
           intentId: intentId,
           txHash: txHash,
+          skuId: purchaseSkuId,
           createdAt: Date.now()
         }));
       } catch (_) {}
@@ -297,7 +313,7 @@
         intentId,
         txHash
       );
-      setPurchaseMessage("PAYMENT COMPLETE \u2022 +1 ORB", 1);
+      setPurchaseMessage(completionMessageForSku(purchaseSkuId), 1);
       try { localStorage.removeItem(PENDING_PAYMENT_KEY); } catch (_) {}
       window.SavannaUnityInstance.SendMessage(
         "Savanna Supabase Client",
@@ -365,7 +381,12 @@
         throw new Error("The game is still loading. Please try again.");
       }
 
-      setPurchaseMessage("PREPARING SECURE ORB PURCHASE\u2026", 0);
+      setPurchaseMessage(
+        skuId === "dagbe_pack"
+          ? "PREPARING SECURE DAGBE PACK PURCHASE\u2026"
+          : "PREPARING SECURE ORB PURCHASE\u2026",
+        0
+      );
       window.SavannaUnityInstance.SendMessage(
         "Savanna Supabase Client",
         "BeginNimiqSkuPurchaseFromWeb",
@@ -395,7 +416,7 @@
 
   function requestSkuPurchase(skuId) {
     var normalizedSku = String(skuId || "").trim();
-    if (normalizedSku !== "orb_1") {
+    if (normalizedSku !== "orb_1" && normalizedSku !== "dagbe_pack") {
       setPurchaseMessage("THIS NIMIQ ITEM IS UNAVAILABLE", 3);
       return false;
     }

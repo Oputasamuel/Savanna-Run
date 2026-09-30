@@ -241,7 +241,10 @@ Deno.serve(async (request: Request) => {
   if (intent.status === "confirmed" && intent.tx_hash === txHash) {
     const { data: inventory } = await serviceClient
       .from("players")
-      .select("orb_count,magnet_count,invincibility_count")
+      .select(
+        "orb_count,magnet_count,invincibility_count," +
+          "flying_broom_count,dagbe_unlocked",
+      )
       .eq("player_id", resolvedPlayerId)
       .single();
     return jsonResponse(
