@@ -3,6 +3,8 @@
  const config = window.SavannaNearConfig || {};
  const key = 'savanna.near.pending.v1';
  const skuKey = 'savanna.near.sku.v1';
+ const accountKey = 'savanna.near.meteor.account.v1';
+ const walletId = 'meteor-wallet';
  let selectorPromise, busy = false, accessToken = '';
  let walletPopup = null, walletPopupTimer = 0;
  const send = (method, value) => window.SavannaUnityInstance?.SendMessage('Savanna Supabase Client', method, value || '');
@@ -30,7 +32,7 @@
  }
  function openWalletPopup() {
   closeWalletPopup();
-  walletPopup=window.open('about:blank','MyNearWallet',popupFeatures());
+  walletPopup=window.open('about:blank','SavannaNearWallet',popupFeatures());
   if(!walletPopup)throw new Error('Your browser blocked the NEAR wallet. Tap Buy again or allow popups for this site.');
   renderPopupWait('PREPARING NEAR CHECKOUT...');
   armPopupTimeout();
@@ -53,7 +55,10 @@
    }
   };
   const interceptedOpen=function(url,name,features){
-   if(name==='MyNearWallet'&&walletPopup&&!walletPopup.closed){
+   // Wallet SDKs do not use one consistent window name. Reuse the popup
+   // opened directly by the Buy tap for every external wallet handoff so
+   // Safari and Chrome on iOS cannot classify it as a blocked popup.
+   if(url&&url!=='about:blank'&&walletPopup&&!walletPopup.closed){
     try{walletPopup.location.href=url;}catch(_){}
     try{walletPopup.focus();}catch(_){}
     return keepOpenAfterSuccess?popupProxy:walletPopup;
@@ -63,8 +68,8 @@
   window.open=interceptedOpen;
   try{
    const result=await action();
-   // MyNearWallet removes its message listener when the returned popup reports
-   // closed. Give its 300 ms cleanup poll one turn before reusing the real window.
+   // Give the wallet selector's cleanup poll one turn before reusing the real
+   // window for the transaction approval step.
    if(keepOpenAfterSuccess)await new Promise(resolve=>setTimeout(resolve,350));
    return result;
   }
@@ -74,22 +79,38 @@
   if (!config.contractId || !['testnet','mainnet'].includes(config.networkId)) throw new Error('NEAR checkout is not configured yet');
   selectorPromise ||= Promise.all([
    import('https://esm.sh/@near-wallet-selector/core@10.1.4'),
-   import('https://esm.sh/@near-wallet-selector/my-near-wallet@10.1.4')
-  ]).then(([core, wallet]) => core.setupWalletSelector({network:config.networkId,modules:[wallet.setupMyNearWallet()]}));
+   import('https://esm.sh/@near-wallet-selector/meteor-wallet@10.1.4')
+  ]).then(([core, wallet]) => core.setupWalletSelector({
+   network:config.networkId,
+   modules:[wallet.setupMeteorWallet()]
+  }));
   return selectorPromise;
+ }
+ function meteorAccount(accounts) {
+  const list=accounts||[];
+  const exact=list.find(account=>account.walletId===walletId);
+  if(exact)return exact;
+  let selected='';
+  try{selected=JSON.parse(localStorage.getItem('near-wallet-selector:selectedWalletId')||'null')||'';}catch(_){}
+  // signIn() returns plain Account objects, while the selector store includes
+  // walletId. Accept a plain account only after Meteor is the selected wallet;
+  // this prevents a cached MyNearWallet account from skipping Meteor sign-in.
+  return selected===walletId?list[0]:null;
  }
  async function prepare(sku) {
   const s = await selector();
-  let accounts = s.store.getState().accounts;
-  if (!accounts.length) {
+  let account = meteorAccount(s.store.getState().accounts);
+  if (!account) {
    sessionStorage.setItem(skuKey,sku);
-   const wallet = await s.wallet('my-near-wallet');
-   await withWalletPopup(()=>wallet.signIn({contractId:config.contractId,methodNames:[]}),true);
-   accounts = s.store.getState().accounts;
-   if (!accounts.length) return; // Redirect wallet resumes on page return.
+   const wallet = await s.wallet(walletId);
+   const signedIn = await withWalletPopup(
+    ()=>wallet.signIn({contractId:config.contractId,methodNames:[]}),true);
+   account = meteorAccount(s.store.getState().accounts) || meteorAccount(signedIn);
+   if (!account) return; // Redirect wallet resumes on page return.
   }
   sessionStorage.removeItem(skuKey);
-  send('BeginNearSkuPurchaseFromWeb', `${sku}|${accounts[0].accountId}`);
+  sessionStorage.setItem(accountKey,account.accountId);
+  send('BeginNearSkuPurchaseFromWeb', `${sku}|${account.accountId}`);
  }
  function requestSkuPurchase(sku) {
   if (busy || !['orb_1','dagbe_pack','kesi_upgrade_01','dagbe_upgrade_01'].includes(sku)) return false;
@@ -137,11 +158,13 @@
   try {
    const intent=JSON.parse(json)[0];
    if(intent.network!==config.networkId||intent.contract_id!==config.contractId||!/^\d+$/.test(intent.amount_yocto))throw new Error('Checkout configuration mismatch');
-   const s=await selector(); const account=s.store.getState().accounts[0]?.accountId;
+   const s=await selector();
+   const account=meteorAccount(s.store.getState().accounts)?.accountId ||
+    sessionStorage.getItem(accountKey);
    if(!account)throw new Error('Connect your NEAR wallet');
    pending={intent,account};sessionStorage.setItem(key,JSON.stringify(pending));
    setPurchaseMessage('APPROVE THE PURCHASE IN YOUR NEAR WALLET',0);
-   const wallet=await s.wallet();
+   const wallet=await s.wallet(walletId);
    const outcome=await withWalletPopup(()=>wallet.signAndSendTransaction({signerId:account,receiverId:intent.contract_id,
     actions:[{type:'FunctionCall',params:{methodName:'purchase',args:{intent_id:intent.intent_id,sku_id:intent.sku_id},
      gas:'30000000000000',deposit:intent.amount_yocto}}]}),false);
